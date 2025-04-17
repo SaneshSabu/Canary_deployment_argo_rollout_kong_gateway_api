@@ -12,7 +12,7 @@ Install kubernetes api gateway for the cluster. See [instructions](https://docs.
 
 Gateway
 
-```
+```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -30,7 +30,7 @@ spec:
 
 GatewayClass
 
-```
+```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
@@ -88,7 +88,7 @@ Note: With the service account 'argo-rollouts' argo rollout gt access to httprou
 
 Create HTTPRoute and connect to the created Gateway resource
 
-```
+```yaml
 kind: HTTPRoute
 apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
@@ -148,7 +148,7 @@ spec:
 ```
 ## Step 6 - Create Rollout
 
-```
+```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -210,7 +210,7 @@ spec:
 
 - Canary rollout steps
 
-```
+```yaml
       steps:
         - setWeight: 40
         - pause: {duration: 1m}
@@ -245,7 +245,7 @@ spec:
 
 ##### To check success rate of traffic through canary service
 
-```
+```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
@@ -267,7 +267,7 @@ spec:
 
 ##### To check success rate of traffic through in gateway api
 
-```
+```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
