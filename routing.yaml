@@ -1,0 +1,76 @@
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: argo-rollouts-http-route
+  labels:
+    app: argo-rollouts-http-route
+  annotations:
+    konghq.com/strip-path: 'true'
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: kong
+  hostnames:
+  - "demo.example.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: argo-rollouts-stable-service
+      kind: Service
+      port: 80
+    - name: argo-rollouts-canary-service
+      kind: Service
+      port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-rollouts-stable-service
+spec:
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: rollouts-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-rollouts-canary-service
+  labels:
+    app: argo-rollouts-canary-service
+  annotations:
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: rollouts-demo
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    release: promstack
+  name: argo-rollouts-canary-monitor
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 10s
+    path: /metrics
+    port: http
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: argo-rollouts-canary-service

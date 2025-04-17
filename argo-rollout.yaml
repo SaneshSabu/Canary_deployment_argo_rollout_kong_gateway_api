@@ -1,0 +1,93 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: rollouts-demo
+  namespace: default
+spec:
+  replicas: 8
+  strategy:
+    canary:
+      canaryService: argo-rollouts-canary-service # canary svc
+      stableService: argo-rollouts-stable-service # stable svc
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: argo-rollouts-http-route # httproute
+            namespace: default
+      steps:
+        - setWeight: 40
+        - pause: {duration: 1m}
+        - analysis:
+            templates:
+            - templateName: success-rate-canary-service    # checks success rate of traffic through canary service
+            args:
+            - name: service-name
+              value: argo-rollouts-canary-service 
+        - setWeight: 60
+        - pause: {duration: 1m}
+        - analysis:
+            templates:
+            - templateName: success-rate-gateway          # checks success rate of traffic through in gateway api
+            args:
+            - name: httproute
+              value: httproute.default.argo-rollouts-http-route.0.0 
+        - pause: {duration: 1m}
+        - setWeight: 100
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: rollouts-demo
+  template:
+    metadata:
+      labels:
+        app: rollouts-demo
+    spec:
+      serviceAccountName: pod-access-sa
+      containers:
+        - name: rollouts-demo
+          image: sanesh9746/argo-rollout-app:blue
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 5m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate-canary-service
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: success-rate-canary-service
+    interval: 1m
+    count: 2
+    successCondition: result[0] >= 0.90
+    failureLimit: 1
+    provider:
+      prometheus:
+        address: http://prometheus-nodeport.monitoring.svc.cluster.local:9090
+        query: sum(rate(http_requests_total{service="argo-rollouts-canary-service", status_code!~"5.."}[1m])) / sum(rate(http_requests_total{service="argo-rollouts-canary-service"}[1m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate-gateway
+spec:
+  args:
+  - name: httproute
+  metrics:
+  - name: success-rate-gateway
+    interval: 1m
+    count: 2
+    successCondition: result[0] >= 0.90
+    failureLimit: 1
+    provider:
+      prometheus:
+        address: http://prometheus-nodeport.monitoring.svc.cluster.local:9090
+        query: sum(rate(kong_http_requests_total{route="{{args.httproute}}", code!~"5.."}[1m])) / sum(rate(kong_http_requests_total{route="{{args.httproute}}"}[1m]))
