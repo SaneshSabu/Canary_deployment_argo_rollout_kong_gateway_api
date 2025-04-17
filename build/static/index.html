@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 24px;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .pod-box {
+            color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px;
+            width: 180px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .pod-name {
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        .pod-version {
+            font-size: 16px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .error-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .error-button:hover {
+            background-color: darkred;
+        }
+    </style>
+</head>
+<body>
+    <h1>Application Dashboard</h1>
+    <div id="container"></div>
+
+    <button class="error-button" onclick="triggerError()">Simulate 500 Error</button>
+
+    <script>
+        async function fetchPods() {
+            try {
+                const response = await fetch("/pods");
+                const data = await response.json();
+                const container = document.getElementById("container");
+                container.innerHTML = ""; // Clear the container before adding new boxes
+
+                data.pods.forEach(pod => {
+                    const box = document.createElement("div");
+                    box.className = "pod-box";
+
+                    // Assign color dynamically based on pod version
+                    if (pod.version === "blue") {
+                        box.style.backgroundColor = "blue";
+                    } else if (pod.version === "green") {
+                        box.style.backgroundColor = "green";
+                    } else {
+                        box.style.backgroundColor = "gray"; // Default or unknown version
+                    }
+
+                    const name = document.createElement("div");
+                    name.className = "pod-name";
+                    name.innerText = pod.name;
+
+                    const version = document.createElement("div");
+                    version.className = "pod-version";
+                    version.innerText = pod.version;
+
+                    box.appendChild(name);
+                    box.appendChild(version);
+                    container.appendChild(box);
+                });
+            } catch (error) {
+                console.error("Error fetching pod data:", error);
+            }
+        }
+
+        async function triggerError() {
+            try {
+                const response = await fetch("/error");
+                if (response.ok) {
+                    console.log("Error simulated successfully.");
+                } else {
+                    console.error("Failed to simulate error:", response.status);
+                }
+            } catch (error) {
+                console.error("Error triggering simulated 500 error:", error);
+            }
+        }
+
+        // Fetch data every 3 seconds
+        fetchPods();
+        setInterval(fetchPods, 3000);
+    </script>
+</body>
+</html>
